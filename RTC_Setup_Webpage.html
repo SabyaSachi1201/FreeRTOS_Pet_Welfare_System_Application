@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThingSpeak Data Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        .time-inputs input {
+            flex: 1;
+        }
+        .special-time-field {
+            background-color: #f0f8ff;
+            border-left: 4px solid #4169e1;
+        }
+        .hint {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #226699;
+            margin-top: 0;
+        }
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 4px;
+            margin-bottom: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        #timestamp-container {
+            display: none;
+            margin-top: 10px;
+        }
+        .toggle-section {
+            color: #226699;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ThingSpeak Data Upload</h1>
+        <p>Use this form to send a Unix timestamp to Field 7 of your ThingSpeak channel using the Write API Key.</p>
+
+        <form id="thingspeakForm">
+            <label for="apiKey">Write API Key:</label>
+            <input type="text" id="apiKey" name="apiKey" placeholder="Enter your ThingSpeak Write API Key" required>
+
+            <div id="fieldsContainer">
+                <div class="field-container special-time-field">
+                    <label for="timeField7">Field 7 (Time Input):</label>
+                    <div class="time-inputs">
+                        <input type="date" id="dateField7" placeholder="YYYY-MM-DD">
+                        <input type="time" id="timeField7" placeholder="HH:MM">
+                    </div>
+                    <input type="hidden" id="field7" name="field7">
+                    <div class="hint">Enter date and time to be converted to Unix timestamp</div>
+                </div>
+            </div>
+
+            <div class="toggle-section" id="toggleTimestamp">+ Add Custom Timestamp</div>
+            <div id="timestamp-container">
+                <label for="useTimestamp">Use Custom Timestamp:</label>
+                <select id="useTimestamp" name="useTimestamp">
+                    <option value="no">No (use ThingSpeak's timestamp)</option>
+                    <option value="yes">Yes (specify custom timestamp)</option>
+                </select>
+
+                <div id="customTimestamp" style="display: none;">
+                    <label for="timestamp">Custom Timestamp:</label>
+                    <input type="datetime-local" id="timestamp" name="timestamp">
+                </div>
+            </div>
+
+            <button type="submit">Send Data to ThingSpeak (Field 7)</button>
+        </form>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Add current time to the timestamp field
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('timestamp').value = now.toISOString().slice(0, 16);
+
+        // Toggle timestamp section
+        document.getElementById('toggleTimestamp').addEventListener('click', function() {
+            const container = document.getElementById('timestamp-container');
+            if (container.style.display === 'none' || container.style.display === '') {
+                container.style.display = 'block';
+                this.textContent = '- Hide Custom Timestamp';
+            } else {
+                container.style.display = 'none';
+                this.textContent = '+ Add Custom Timestamp';
+            }
+        });
+
+        // Show/hide custom timestamp input based on selection
+        document.getElementById('useTimestamp').addEventListener('change', function() {
+            const customTimestamp = document.getElementById('customTimestamp');
+            if (this.value === 'yes') {
+                customTimestamp.style.display = 'block';
+            } else {
+                customTimestamp.style.display = 'none';
+            }
+        });
+
+        // Convert date and time to Unix timestamp for field 7
+        function updateUnixTimestamp() {
+            const dateInput = document.getElementById('dateField7');
+            const timeInput = document.getElementById('timeField7');
+            const field7Input = document.getElementById('field7');
+
+            if (dateInput.value && timeInput.value) {
+                // Combine date and time
+                const dateTimeStr = `${dateInput.value}T${timeInput.value}:00`;
+                const dateObj = new Date(dateTimeStr);
+
+                // Convert to Unix timestamp (seconds since epoch)
+                const unixTimestamp = Math.floor(dateObj.getTime() / 1000);
+                field7Input.value = unixTimestamp;
+
+                // Show the Unix timestamp in the hint
+                const hintElement = dateInput.parentElement.nextElementSibling.nextElementSibling;
+                hintElement.textContent = `Unix timestamp: ${unixTimestamp}`;
+            } else {
+                field7Input.value = '';
+                const hintElement = dateInput.parentElement.nextElementSibling.nextElementSibling;
+                hintElement.textContent = `Enter date and time to be converted to Unix timestamp`;
+            }
+        }
+
+        // Add event listeners for date and time inputs
+        document.getElementById('dateField7').addEventListener('change', updateUnixTimestamp);
+        document.getElementById('timeField7').addEventListener('change', updateUnixTimestamp);
+
+        // Set initial values for date and time
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        const timeStr = today.toTimeString().slice(0, 5);
+        document.getElementById('dateField7').value = dateStr;
+        document.getElementById('timeField7').value = timeStr;
+        updateUnixTimestamp(); // Initialize the Unix timestamp
+
+        // Handle form submission
+        document.getElementById('thingspeakForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const field7Value = document.getElementById('field7').value;
+
+            if (!apiKey) {
+                showStatus('Please enter your ThingSpeak Write API Key.', 'error');
+                return;
+            }
+
+            if (!field7Value) {
+                showStatus('Please enter a date and time for Field 7.', 'error');
+                return;
+            }
+
+            // Build the URL for updating only field7
+            let url = `https://api.thingspeak.com/update?api_key=${apiKey}&field7=${field7Value}`;
+
+            // Add timestamp if specified
+            if (document.getElementById('useTimestamp').value === 'yes') {
+                const timestamp = document.getElementById('timestamp').value;
+                if (timestamp) {
+                    // Format timestamp for ThingSpeak (YYYY-MM-DD HH:MM:SS)
+                    const formattedTimestamp = timestamp.replace('T', ' ') + ':00';
+                    url += `&created_at=${encodeURIComponent(formattedTimestamp)}`;
+                }
+            }
+
+            // Send the request
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    if (data && !isNaN(parseInt(data))) {
+                        showStatus(`Data successfully uploaded to ThingSpeak (Field 7)! Entry ID: ${data}`, 'success');
+                    } else {
+                        showStatus('Error: ' + data, 'error');
+                    }
+                })
+                .catch(error => {
+                    showStatus('Error sending data: ' + error.message, 'error');
+                });
+        });
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+            statusDiv.style.display = 'block';
+
+            // Scroll to status message
+            statusDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
