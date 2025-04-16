@@ -64,7 +64,8 @@ const long SENSOR_READ_INTERVAL_MS = 5000;
 const TickType_t SENSOR_READ_DELAY_TICKS = pdMS_TO_TICKS(SENSOR_READ_INTERVAL_MS);
 const long WIFI_CONNECT_RETRY_DELAY_MS = 2000;
 const int WIFI_MAX_CONNECT_RETRIES = 5;
-
+float longtude = 77.6096;
+float latitude = 12.9544;
 WiFiClient client;
 RTC_DS3231 rtc;
 Servo myservo;
@@ -143,7 +144,7 @@ void sensorTask(void *pvParameters) {
       long timeDifference = abs(localSensorValues.globalreadField - currentUnixTime);
       Serial.print("Target Unix Time Received: ");
       Serial.println(localSensorValues.globalreadField);
-      if (timeDifference <= 20) {
+      if (timeDifference <= 5) {
         stopAllTasks();
         Serial.println("Time Match (from SensorTask)!");
         motor_actuation(); // Call the function directly
@@ -169,15 +170,16 @@ void motor_actuation() {
   for (int posDegrees = 0; posDegrees <= 180; posDegrees++) {
     myservo.write(posDegrees);
     Serial.printf("Servo moving to %d degrees\n", posDegrees);
-    delay(20);
+    delay(10);
   }
+  delay(30);
   for (int posDegrees = 180; posDegrees >= 0; posDegrees--) {
     myservo.write(posDegrees);
     Serial.printf("Servo moving to %d degrees\n", posDegrees);
-    delay(20);
+    delay(10);
   }
 
-  ResumeAllTasks();
+  // ResumeAllTasks();
   Serial.println("Tasks resumed after motor actuation.");
 }
 
@@ -203,7 +205,7 @@ void readFieldTask(void *pvParameters) {
 
 void stopAllTasks() {
   Serial.println("Entering stopAllTasks()");
-  vTaskDelay(pdMS_TO_TICKS(10)); // Just a small delay
+  vTaskDelay(pdMS_TO_TICKS(20)); // Just a small delay
   Serial.println("Exiting stopAllTasks()");
 }
 // void stopAllTasks() {
@@ -231,17 +233,17 @@ void stopAllTasks() {
 //   }
 // }
 
-void ResumeAllTasks() {
-  if (task_suspend_check_flag == 1) {
-    vTaskResume(wifiTaskHandle);
-    vTaskResume(sensorTaskHandle);
-    vTaskResume(uploadTaskHandle);
-    vTaskResume(readFieldTaskHandle);
-    task_suspend_check_flag = 0;
-  } else {
-    Serial.println("Tasks Already Resumed");
-  }
-}
+// void ResumeAllTasks() {
+//   if (task_suspend_check_flag == 1) {
+//     vTaskResume(wifiTaskHandle);
+//     vTaskResume(sensorTaskHandle);
+//     vTaskResume(uploadTaskHandle);
+//     vTaskResume(readFieldTaskHandle);
+//     task_suspend_check_flag = 0;
+//   } else {
+//     Serial.println("Tasks Already Resumed");
+//   }
+// }
 
 void uploadTask(void *pvParameters) {
   Serial.println("Upload Task started");
@@ -255,6 +257,8 @@ void uploadTask(void *pvParameters) {
         Serial.println("--- Uploading Data to ThingSpeak ---");
         ThingSpeak.setField(1, receivedData.temperature);
         ThingSpeak.setField(2, receivedData.humidity);
+        ThingSpeak.setField(3, longtude);
+        ThingSpeak.setField(4, latitude);
         ThingSpeak.setField(5, receivedData.waterLevelPercentage);
         ThingSpeak.setField(6, receivedData.weightKgGlobal);
 

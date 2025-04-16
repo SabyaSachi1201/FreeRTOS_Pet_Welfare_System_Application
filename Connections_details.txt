@@ -1,0 +1,8 @@
+All connection details:
+1. Servo Motor Signal Pin : Pin 13
+2. DHT11 Signal Pin : Pin 4 
+3. RTC : SDA : Pin 21
+		 SCL : Pin 22
+4. Weight Sensor : SCK : 17
+				   DT  : 16
+5. Water level Signal Pin : Pin 34				   
